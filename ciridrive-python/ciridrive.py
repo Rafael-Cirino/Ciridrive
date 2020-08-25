@@ -8,6 +8,18 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+DEFAULT_SETTINGS = {
+    "installed": {
+        "client_id": "",
+        "client_secret": "",
+        "project_id": "",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"],
+    }
+}
+
 
 def drive_pass():
     """
@@ -24,7 +36,7 @@ def drive_pass():
     ]
 
     # Path to credential
-    PATH = os.getcwd() + "/"
+    PATH = os.getcwd() + "/pass/"
 
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
@@ -42,9 +54,15 @@ def drive_pass():
             client_id = input("Digite a cliente_id:")
             client_secret = input("Digite a cliente_secret:")
 
-            settings = {}
-            with open(PATH + "settings.json", "r") as file:
-                settings = json.load(file)
+            if os.path.exists(PATH + "settings.json"):
+                with open(PATH + "settings.json", "r") as file:
+                    settings = json.load(file)
+            else:
+                with open(PATH + "settings.json", "w") as file:
+                    json.dump(DEFAULT_SETTINGS, file)
+
+                with open(PATH + "settings.json", "r") as file:
+                    settings = json.load(file)
 
             settings["installed"]["client_id"] = client_id
             settings["installed"]["client_secret"] = client_secret
