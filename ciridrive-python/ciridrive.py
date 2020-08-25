@@ -1,7 +1,7 @@
 import os.path
 import pickle
 import time
-import base64
+import json
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -33,14 +33,28 @@ def drive_pass():
     if os.path.exists(PATH + "pass_drive"):
         with open(PATH + "pass_drive", "rb") as token:
             creds = pickle.load(token)
-            
+
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            client_id = input("Digite a cliente_id:")
+            client_secret = input("Digite a cliente_secret:")
+
+            settings = {}
+            with open(PATH + "settings.json", "r") as file:
+                settings = json.load(file)
+
+            settings["installed"]["client_id"] = client_id
+            settings["installed"]["client_secret"] = client_secret
+            settings["installed"]["project_id"] = "Ciridrive-External"
+
+            with open(PATH + "settings.json", "w") as file:
+                json.dump(settings, file)
+
             flow = InstalledAppFlow.from_client_secrets_file(
-                PATH + "credentials.json", SCOPES
+                PATH + "settings.json", SCOPES
             )
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
