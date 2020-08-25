@@ -2,6 +2,7 @@ import os.path
 import pickle
 import time
 import json
+import pathlib
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -20,6 +21,9 @@ DEFAULT_SETTINGS = {
     }
 }
 
+FILE_SETTINGS = "settings_drive.json"
+PASS_DRIVE = "pass_drive"
+
 
 def drive_pass():
     """
@@ -36,14 +40,14 @@ def drive_pass():
     ]
 
     # Path to credential
-    PATH = os.getcwd() + "/pass/"
+    PATH = str(pathlib.Path(__file__).parent.resolve()) + "/pass_drive/"
 
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists(PATH + "pass_drive"):
-        with open(PATH + "pass_drive", "rb") as token:
+    if os.path.exists(PATH + PASS_DRIVE):
+        with open(PATH + PASS_DRIVE, "rb") as token:
             creds = pickle.load(token)
 
     # If there are no (valid) credentials available, let the user log in.
@@ -54,29 +58,31 @@ def drive_pass():
             client_id = input("Digite a cliente_id:")
             client_secret = input("Digite a cliente_secret:")
 
-            if os.path.exists(PATH + "settings.json"):
-                with open(PATH + "settings.json", "r") as file:
+            if not (os.path.exists(PATH)):
+                os.mkdir(PATH)
+            if os.path.exists(PATH + FILE_SETTINGS):
+                with open(PATH + FILE_SETTINGS, "r") as file:
                     settings = json.load(file)
             else:
-                with open(PATH + "settings.json", "w") as file:
+                with open(PATH + FILE_SETTINGS, "w") as file:
                     json.dump(DEFAULT_SETTINGS, file)
 
-                with open(PATH + "settings.json", "r") as file:
+                with open(PATH + FILE_SETTINGS, "r") as file:
                     settings = json.load(file)
 
             settings["installed"]["client_id"] = client_id
             settings["installed"]["client_secret"] = client_secret
             settings["installed"]["project_id"] = "Ciridrive-External"
 
-            with open(PATH + "settings.json", "w") as file:
+            with open(PATH + FILE_SETTINGS, "w") as file:
                 json.dump(settings, file)
 
             flow = InstalledAppFlow.from_client_secrets_file(
-                PATH + "settings.json", SCOPES
+                PATH + FILE_SETTINGS, SCOPES
             )
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open(PATH + "pass_drive", "wb") as token:
+        with open(PATH + PASS_DRIVE, "wb") as token:
             pickle.dump(creds, token)
 
     return creds
