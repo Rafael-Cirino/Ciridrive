@@ -25,69 +25,112 @@ FILE_SETTINGS = "settings_drive.json"
 PASS_DRIVE = "pass_drive"
 
 
-def drive_pass():
-    """
-        Goal:
-            Responsible for "logging" into the drive.
-        Returns:
-            Returns the credential to service log into the drive.
-    """
-    # If modifying these scopes, delete the file token.pickle.
-    SCOPES = [
-        "https://www.googleapis.com/auth/drive.metadata.readonly",
-        "https://www.googleapis.com/auth/drive",
-        "https://www.googleapis.com/auth/drive.file",
-    ]
+class ciridrive:
+    def __init__(self):
+        """
+            Goal:
+                Responsible for "logging" into the drive.
+            Returns:
+                Returns the credential to service log into the drive.
+        """
+        # If modifying these scopes, delete the file token.pickle.
+        SCOPES = [
+            "https://www.googleapis.com/auth/drive.metadata.readonly",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.file",
+        ]
 
-    # Path to credential
-    PATH = str(pathlib.Path(__file__).parent.resolve()) + "/pass_drive/"
+        # Path to credential
+        PATH = str(pathlib.Path(__file__).parent.resolve()) + "/pass_drive/"
 
-    creds = None
-    # The file token.pickle stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists(PATH + PASS_DRIVE):
-        with open(PATH + PASS_DRIVE, "rb") as token:
-            creds = pickle.load(token)
+        self.creds = None
+        # The file token.pickle stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists(PATH + PASS_DRIVE):
+            with open(PATH + PASS_DRIVE, "rb") as token:
+                self.creds = pickle.load(token)
 
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            client_id = input("Digite a cliente_id:")
-            client_secret = input("Digite a cliente_secret:")
-
-            if not (os.path.exists(PATH)):
-                os.mkdir(PATH)
-            if os.path.exists(PATH + FILE_SETTINGS):
-                with open(PATH + FILE_SETTINGS, "r") as file:
-                    settings = json.load(file)
+        # If there are no (valid) credentials available, let the user log in.
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
             else:
+                # Receiving client_id and client_secret
+                client_id = input("Digite a client_id/Enter the client_id:")
+                client_secret = input(
+                    "Digite a client_secret//Enter the client_secret:"
+                )
+
+                # Checking if folders exist
+                if not (os.path.exists(PATH)):
+                    os.mkdir(PATH)
+                if os.path.exists(PATH + FILE_SETTINGS):
+                    with open(PATH + FILE_SETTINGS, "r") as file:
+                        settings = json.load(file)
+                else:
+                    with open(PATH + FILE_SETTINGS, "w") as file:
+                        json.dump(DEFAULT_SETTINGS, file)
+
+                    with open(PATH + FILE_SETTINGS, "r") as file:
+                        settings = json.load(file)
+
+                # Editing the settings for the client values ​​entered by the user
+                settings["installed"]["client_id"] = client_id
+                settings["installed"]["client_secret"] = client_secret
+                settings["installed"]["project_id"] = "Ciridrive-External"
+
                 with open(PATH + FILE_SETTINGS, "w") as file:
-                    json.dump(DEFAULT_SETTINGS, file)
+                    json.dump(settings, file)
 
-                with open(PATH + FILE_SETTINGS, "r") as file:
-                    settings = json.load(file)
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    PATH + FILE_SETTINGS, SCOPES
+                )
+                self.creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open(PATH + PASS_DRIVE, "wb") as token:
+                pickle.dump(self.creds, token)
 
-            settings["installed"]["client_id"] = client_id
-            settings["installed"]["client_secret"] = client_secret
-            settings["installed"]["project_id"] = "Ciridrive-External"
+    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME):
+        # Verify internet connection
+        try:
+            service = build("sheets", "v4", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
 
-            with open(PATH + FILE_SETTINGS, "w") as file:
-                json.dump(settings, file)
+            return "ERROR"
 
-            flow = InstalledAppFlow.from_client_secrets_file(
-                PATH + FILE_SETTINGS, SCOPES
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+
+        # Verify variables names
+        try:
+            print(SPREADSHEET_ID, TAB_NAME)
+            result = (
+                sheet.values()
+                .get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=TAB_NAME,
+                    majorDimension="COLUMNS",
+                )
+                .execute()
             )
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(PATH + PASS_DRIVE, "wb") as token:
-            pickle.dump(creds, token)
+            print(SPREADSHEET_ID)
+            values = result.get("values", {})
 
-    return creds
+            return values
+        except:
+            print(
+                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
+            )
+
+            return "ERROR"
 
 
 if __name__ == "__main__":
-    drive_pass()
+    values = ciridrive().sheet_to_list(
+        "17p_SDlN6eW8jHmrGiHR3mwRzzZgGwGXFXBV7-HMtWBk", "tab"
+    )
+
+    print(values)
 
