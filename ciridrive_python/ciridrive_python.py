@@ -235,7 +235,7 @@ class ciridrive:
 
         drive_folder = (
             service.files()
-            .create(body=file_metadata, fields="id", supportsAllDrives=True,)
+            .create(body=file_metadata, fields="id", supportsAllDrives=True)
             .execute()
         )
 
@@ -328,11 +328,36 @@ class ciridrive:
 
         config_copy_file = (
             service.files()
-            .copy(fileId=file_id, body=file_metadata, supportsAllDrives=True,)
+            .copy(fileId=file_id, body=file_metadata, supportsAllDrives=True)
             .execute()
         )
 
         return config_copy_file["id"]
+
+    def move_file(self, file_id, folder_id):
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        # Retrieve the existing parents to remove
+        file = service.files().get(fileId=file_id, fields="parents").execute()
+        previous_parents = ",".join(file.get("parents"))
+
+        # Move the file to the new folder
+        file = (
+            service.files()
+            .update(
+                fileId=file_id,
+                addParents=folder_id,
+                removeParents=previous_parents,
+                fields="id, parents",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
 
 
 if __name__ == "__main__":
