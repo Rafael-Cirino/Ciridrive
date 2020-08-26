@@ -80,7 +80,8 @@ class ciridrive:
         ]
 
         # Path to credential
-        PATH = str(pathlib.Path(__file__).parent.resolve()) + "/pass_drive/"
+        self.path_script = str(pathlib.Path(__file__).parent.resolve())
+        PATH = self.path_script + "/pass_drive/"
 
         self.creds = None
         # The file token.pickle stores the user's access and refresh tokens, and is
@@ -137,7 +138,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -174,7 +175,7 @@ class ciridrive:
                 "ERROR: Incorrect Tab_name, Spreadsheet_name or spreadsheet_id. Please check and try again."
             )
 
-            return "ERROR"
+            return False
 
     def sheet_to_json(
         self, spreadsheet_id, tab_name=False, status=False, file_path="sheet_json.json"
@@ -185,7 +186,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -225,7 +226,7 @@ class ciridrive:
                 "ERROR: Incorrect Tab_name, Spreadsheet_name or spreadsheet_id. Please check and try again."
             )
 
-            return "ERROR"
+            return False
 
     def create_folder(self, name_folder=False, id_folder_main=False):
         """
@@ -237,7 +238,7 @@ class ciridrive:
                 credentials: Password to access the drive, If not, this function will create
             Returns:
                 Normal return: created folder id.
-                "ERROR": If an error has occurred.
+                False: If an error has occurred.
         """
 
         # Checks whether the arguments were passed correctly
@@ -249,7 +250,7 @@ class ciridrive:
             id_folder_main: If the folder is created inside another.
             credentials: Password to access the drive, If not, this function will create\n"""
             )
-            return "ERROR"
+            return False
 
         # Logging into the drive and receiving credentials
         try:
@@ -257,7 +258,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         # Configures the file name and folder on the drive
         file_metadata = {
@@ -288,7 +289,7 @@ class ciridrive:
                 credentials: Password to access the drive, If not, this function will create
             Returns:
                 "sucess": The upload was successful.
-                "ERROR": If an error has occurred.
+                False: If an error has occurred.
         """
 
         # Logging into the drive and receiving credentials
@@ -297,7 +298,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         # Checking if the file to be sent exists
         if os.path.exists(path_file):
@@ -322,12 +323,12 @@ class ciridrive:
         else:
             print("UpDrive: File not found\n")
 
-            return "ERROR"
+            return False
 
         # Shows the upload progress on the terminal
-        response, progresso_ant = None, False
+        response, progresso_ant = None, 0
         start = time.time()
-        print(f"--- Uploading the file : {name_file} ---\n")
+        print(f"\n--- Uploading the file : {name_file} ---\n")
         while response is None:
             try:
                 status, response = request.next_chunk()
@@ -343,49 +344,79 @@ class ciridrive:
                     print(f"Time remaining: {round((100-progresso)/taxa,2)}s.")
                     progresso_ant = progresso
             except:
-                print("Internet is down\n")
+                print("No internet connection\n")
 
-                return "ERROR"
+                return False
         print(f"--> Upload Complete! : {name_file} <--\n")
 
         return id_file
 
-    def drive_download(self, file_id):
+    def drive_download(self, file_id, save_path=False, status=True):
+        # Authenticates to the drive
         try:
             service = build("drive", "v3", credentials=self.creds)
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
-        details_arq = service.files().get(fileId=file_id).execute()
+        # Creates the folder where the downloaded file will be saved
+        default_path_download = self.path_script + "/download"
+        if not (os.path.exists(default_path_download)) and not (save_path):
+            os.mkdir(default_path_download)
+        elif save_path:
+            default_path_download = save_path
 
-        # if "vnd.google-apps" in details_arq["mimeType"]:
-        if details_arq["mimeType"] in DICT_MIME_TYPE["google-apps"]:
-            type_file = DICT_MIME_TYPE["google-apps"][details_arq["mimeType"]]
+        # Receives file metadata
+        metadata_arq = service.files().get(fileId=file_id).execute()
+        name_file = metadata_arq["name"]
+
+        # Sets the file type
+        if metadata_arq["mimeType"] in DICT_MIME_TYPE["google-apps"]:
+            type_file = DICT_MIME_TYPE["google-apps"][metadata_arq["mimeType"]]
             request = service.files().export_media(
                 fileId=file_id, mimeType="application/pdf"
             )
             file_save = io.FileIO(
-                f"download/{details_arq['name']}.{type_file}", mode="wb"
+                f"{default_path_download}/{name_file}.{type_file}", mode="wb"
             )
-        elif details_arq["mimeType"] in DICT_MIME_TYPE["general"]:
-            type_file = DICT_MIME_TYPE["general"][details_arq["mimeType"]]
+        elif metadata_arq["mimeType"] in DICT_MIME_TYPE["general"]:
             request = service.files().get_media(fileId=file_id)
-            file_save = io.FileIO(
-                f"download/{details_arq['name']}.{type_file}", mode="wb"
-            )
+            file_save = io.FileIO(f"{default_path_download}/{name_file}", mode="wb")
         else:
-            print("O tipo de arquivo não pode ser baixado")
+            print("The file type cannot be downloaded")
 
             return False
 
-        print(details_arq)
         downloader = MediaIoBaseDownload(file_save, request)
-        done = False
+
+        # Download the file, and print the remaining time on the screen
+        done, progresso_ant = False, 0
+        start = time.time()
+        if status:
+            print(f"\n--- Downloading the file : {name_file} ---\n")
         while done is False:
-            status, done = downloader.next_chunk()
-            print("Download %d%%." % int(status.progress() * 100))
+            try:
+                status_download, done = downloader.next_chunk()
+                if status_download and status:
+                    progresso = status_download.progress() * 100
+                    speed_upload = time.time() - start
+                    start = time.time()
+                    taxa = (
+                        (progresso - progresso_ant if progresso_ant else progresso)
+                    ) / speed_upload
+
+                    print(f"Downloading: {int(progresso)}%.", end=" | ")
+                    print(f"Time remaining: {round((100-progresso)/taxa,2)}s.")
+                    progresso_ant = progresso
+            except:
+                print("No internet connection\n")
+
+                return False
+        if status:
+            print(f"--> Downloading Complete! : {name_file} <--\n")
+
+        return True
 
     def copy_file(self, file_id, new_name=False):
         try:
@@ -393,7 +424,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         file_metadata = {"description": "This file is a copy"}
         if new_name:
@@ -413,7 +444,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         # Retrieve the existing parents to remove
         file = service.files().get(fileId=file_id, fields="parents").execute()
@@ -439,7 +470,7 @@ class ciridrive:
         except:
             print("ERROR: No internet connection")
 
-            return "ERROR"
+            return False
 
         page_token = None
         while True:
