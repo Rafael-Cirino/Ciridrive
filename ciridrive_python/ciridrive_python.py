@@ -9,6 +9,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+import io  # Added
+from googleapiclient.http import MediaIoBaseDownload
+from apiclient import http
+
 DEFAULT_SETTINGS = {
     "installed": {
         "client_id": "",
@@ -23,6 +27,38 @@ DEFAULT_SETTINGS = {
 
 FILE_SETTINGS = "settings_drive.json"
 PASS_DRIVE = "pass_drive"
+DICT_MIME_TYPE = {
+    "google-apps": {
+        "application/vnd.google-apps.document": "docx",
+        "application/vnd.google-apps.spreadsheet": "xlsx",
+        "application/vnd.google-apps.presentation": "pptx",
+    },
+    "general": {
+        "application/pdf": "pdf",
+        "text/plain": "txt",
+        "application/vnd.ms-excel": "xls",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+        "text/xml": "xml",
+        "application/vnd.oasis.opendocument.spreadsheet": "ods",
+        "application/x-httpd-php": "php",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/gif": "gif",
+        "image/bmp": "bmp",
+        "application/msword": "doc",
+        "text/js": "js",
+        "application/x-shockwave-flash": "swf",
+        "audio/mpeg": "mp3",
+        "application/zip": "zip",
+        "application/rar": "rar",
+        "application/tar": "tar",
+        "application/arj": "arj",
+        "application/cab": "cab",
+        "text/html": "html",
+        "text/html": "htm",
+        "application/octet-stream": "default",
+    },
+}
 
 
 class ciridrive:
@@ -241,7 +277,7 @@ class ciridrive:
 
         return drive_folder.get("id")
 
-    def up_drive(self, path_file, id_folder=False, name_file_inDrive=False):
+    def drive_upload(self, path_file, id_folder=False, name_file_inDrive=False):
         """
             Goal:
                 Access the drive and upload the file
@@ -314,6 +350,43 @@ class ciridrive:
 
         return id_file
 
+    def drive_download(self, file_id):
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        details_arq = service.files().get(fileId=file_id).execute()
+
+        # if "vnd.google-apps" in details_arq["mimeType"]:
+        if details_arq["mimeType"] in DICT_MIME_TYPE["google-apps"]:
+            type_file = DICT_MIME_TYPE["google-apps"][details_arq["mimeType"]]
+            request = service.files().export_media(
+                fileId=file_id, mimeType="application/pdf"
+            )
+            file_save = io.FileIO(
+                f"download/{details_arq['name']}.{type_file}", mode="wb"
+            )
+        elif details_arq["mimeType"] in DICT_MIME_TYPE["general"]:
+            type_file = DICT_MIME_TYPE["general"][details_arq["mimeType"]]
+            request = service.files().get_media(fileId=file_id)
+            file_save = io.FileIO(
+                f"download/{details_arq['name']}.{type_file}", mode="wb"
+            )
+        else:
+            print("O tipo de arquivo não pode ser baixado")
+
+            return False
+
+        print(details_arq)
+        downloader = MediaIoBaseDownload(file_save, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            print("Download %d%%." % int(status.progress() * 100))
+
     def copy_file(self, file_id, new_name=False):
         try:
             service = build("drive", "v3", credentials=self.creds)
@@ -360,6 +433,7 @@ class ciridrive:
         )
 
     def search_files(self):
+        # AINDA NÃO TERMINEI
         try:
             service = build("drive", "v3", credentials=self.creds)
         except:
