@@ -326,9 +326,13 @@ class ciridrive:
         if new_name:
             file_metadata["name"] = str(new_name)
 
-        service.files().copy(
-            fileId=file_id, body=file_metadata, supportsAllDrives=True,
-        ).execute()
+        config_copy_file = (
+            service.files()
+            .copy(fileId=file_id, body=file_metadata, supportsAllDrives=True,)
+            .execute()
+        )
+
+        return config_copy_file["id"]
 
 
 if __name__ == "__main__":
