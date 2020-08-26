@@ -38,6 +38,9 @@ class ciridrive:
             "https://www.googleapis.com/auth/drive.metadata.readonly",
             "https://www.googleapis.com/auth/drive",
             "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive.appdata",
+            "https://www.googleapis.com/auth/drive.apps.readonly",
+            "https://www.googleapis.com/auth/drive.photos.readonly",
         ]
 
         # Path to credential
@@ -252,17 +255,6 @@ class ciridrive:
                 "ERROR": If an error has occurred.
         """
 
-        # Checks whether the arguments were passed correctly
-        if False in [True]:
-            print("up_Drive: Argument is missing, please check and try again.\n")
-            print(
-                """Args:
-            path_file: Path of the file to be uploaded(Required).
-            id_folder: Folder id on the drive(Required).
-            name_file_inDrive: If you leave a different name for the file on the drive.\n"""
-            )
-            return "ERROR"
-
         # Logging into the drive and receiving credentials
         try:
             service = build("drive", "v3", credentials=self.creds)
@@ -277,7 +269,9 @@ class ciridrive:
             name_file = (
                 name_file_inDrive if name_file_inDrive else path_file.split("/")[-1]
             )
-            file_metadata = {"name": str(name_file)}
+
+            id_file = service.files().generateIds(count=1, space="drive").execute()
+            file_metadata = {"name": str(name_file), "id": id_file["ids"][0]}
 
             if id_folder:
                 file_metadata["parents"] = [str(id_folder)]
@@ -318,7 +312,23 @@ class ciridrive:
                 return "ERROR"
         print(f"--> Upload Complete! : {name_file} <--\n")
 
-        return "sucess"
+        return id_file
+
+    def copy_file(self, file_id, new_name=False):
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        file_metadata = {"description": "This file is a copy"}
+        if new_name:
+            file_metadata["name"] = str(new_name)
+
+        service.files().copy(
+            fileId=file_id, body=file_metadata, supportsAllDrives=True,
+        ).execute()
 
 
 if __name__ == "__main__":
