@@ -91,7 +91,7 @@ class ciridrive:
             with open(PATH + PASS_DRIVE, "wb") as token:
                 pickle.dump(self.creds, token)
 
-    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME):
+    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME, status=False):
         # Verify internet connection
         try:
             service = build("sheets", "v4", credentials=self.creds)
@@ -118,6 +118,52 @@ class ciridrive:
             values = result.get("values", {})
 
             return values
+        except:
+            print(
+                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
+            )
+
+            return "ERROR"
+
+    def sheet_to_json(self, SPREADSHEET_ID, TAB_NAME=False, status=False):
+        # Verify internet connection
+        try:
+            service = build("sheets", "v4", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+
+        # Verify variables names
+        try:
+            if not TAB_NAME:
+                list_tab = []
+                metadata = sheet.getByDataFilter(spreadsheetId=SPREADSHEET_ID).execute()
+                for key_sheet in metadata["sheets"]:
+                    list_tab.append(key_sheet["properties"]["title"])
+            else:
+                list_tab = [TAB_NAME]
+
+            print(list_tab)
+
+            dict_values = {}
+            for tab in list_tab:
+                result = (
+                    sheet.values()
+                    .get(
+                        spreadsheetId=SPREADSHEET_ID,
+                        range=tab,
+                        majorDimension="COLUMNS",
+                    )
+                    .execute()
+                )
+
+                dict_values[tab] = result.get("values", {})
+
+            return dict_values
         except:
             print(
                 "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
