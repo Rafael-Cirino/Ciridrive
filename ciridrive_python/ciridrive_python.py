@@ -91,7 +91,7 @@ class ciridrive:
             with open(PATH + PASS_DRIVE, "wb") as token:
                 pickle.dump(self.creds, token)
 
-    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME, status=False):
+    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME=False, status=False):
         # Verify internet connection
         try:
             service = build("sheets", "v4", credentials=self.creds)
@@ -105,40 +105,7 @@ class ciridrive:
 
         # Verify variables names
         try:
-            result = (
-                sheet.values()
-                .get(
-                    spreadsheetId=SPREADSHEET_ID,
-                    range=TAB_NAME,
-                    majorDimension="COLUMNS",
-                )
-                .execute()
-            )
-
-            values = result.get("values", {})
-
-            return values
-        except:
-            print(
-                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
-            )
-
-            return "ERROR"
-
-    def sheet_to_json(self, SPREADSHEET_ID, TAB_NAME=False, status=False):
-        # Verify internet connection
-        try:
-            service = build("sheets", "v4", credentials=self.creds)
-        except:
-            print("ERROR: No internet connection")
-
-            return "ERROR"
-
-        # Call the Sheets API
-        sheet = service.spreadsheets()
-
-        # Verify variables names
-        try:
+            # Search the name of all tabs
             if not TAB_NAME:
                 list_tab = []
                 metadata = sheet.getByDataFilter(spreadsheetId=SPREADSHEET_ID).execute()
@@ -147,8 +114,55 @@ class ciridrive:
             else:
                 list_tab = [TAB_NAME]
 
-            print(list_tab)
+            # Download the spreadsheet tabs
+            list_values = []
+            for tab in list_tab:
+                result = (
+                    sheet.values()
+                    .get(
+                        spreadsheetId=SPREADSHEET_ID,
+                        range=tab,
+                        majorDimension="COLUMNS",
+                    )
+                    .execute()
+                )
 
+                list_values.append(result.get("values", []))
+
+            return list_values
+        except:
+            print(
+                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
+            )
+
+            return "ERROR"
+
+    def sheet_to_json(
+        self, SPREADSHEET_ID, TAB_NAME=False, status=False, FILE_PATH="sheet_json.json"
+    ):
+        # Verify internet connection
+        try:
+            service = build("sheets", "v4", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+
+        # Verify variables names
+        try:
+            # Search the name of all tabs
+            if not TAB_NAME:
+                list_tab = []
+                metadata = sheet.getByDataFilter(spreadsheetId=SPREADSHEET_ID).execute()
+                for key_sheet in metadata["sheets"]:
+                    list_tab.append(key_sheet["properties"]["title"])
+            else:
+                list_tab = [TAB_NAME]
+
+            # Download the spreadsheet tabs
             dict_values = {}
             for tab in list_tab:
                 result = (
@@ -162,6 +176,9 @@ class ciridrive:
                 )
 
                 dict_values[tab] = result.get("values", {})
+
+            with open(FILE_PATH, "w") as json_file:
+                json.dump(dict_values, json_file)
 
             return dict_values
         except:
