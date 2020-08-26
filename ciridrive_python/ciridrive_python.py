@@ -91,7 +91,7 @@ class ciridrive:
             with open(PATH + PASS_DRIVE, "wb") as token:
                 pickle.dump(self.creds, token)
 
-    def sheet_to_list(self, SPREADSHEET_ID, TAB_NAME=False, status=False):
+    def sheet_to_list(self, spreadsheet_id, tab_name=False, status=False):
         # Verify internet connection
         try:
             service = build("sheets", "v4", credentials=self.creds)
@@ -106,13 +106,13 @@ class ciridrive:
         # Verify variables names
         try:
             # Search the name of all tabs
-            if not TAB_NAME:
+            if not tab_name:
                 list_tab = []
-                metadata = sheet.getByDataFilter(spreadsheetId=SPREADSHEET_ID).execute()
+                metadata = sheet.getByDataFilter(spreadsheetId=spreadsheet_id).execute()
                 for key_sheet in metadata["sheets"]:
                     list_tab.append(key_sheet["properties"]["title"])
             else:
-                list_tab = [TAB_NAME]
+                list_tab = [tab_name]
 
             # Download the spreadsheet tabs
             list_values = []
@@ -120,7 +120,7 @@ class ciridrive:
                 result = (
                     sheet.values()
                     .get(
-                        spreadsheetId=SPREADSHEET_ID,
+                        spreadsheetId=spreadsheet_id,
                         range=tab,
                         majorDimension="COLUMNS",
                     )
@@ -132,13 +132,13 @@ class ciridrive:
             return list_values
         except:
             print(
-                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
+                "ERROR: Incorrect Tab_name, Spreadsheet_name or spreadsheet_id. Please check and try again."
             )
 
             return "ERROR"
 
     def sheet_to_json(
-        self, SPREADSHEET_ID, TAB_NAME=False, status=False, FILE_PATH="sheet_json.json"
+        self, spreadsheet_id, tab_name=False, status=False, file_path="sheet_json.json"
     ):
         # Verify internet connection
         try:
@@ -154,13 +154,13 @@ class ciridrive:
         # Verify variables names
         try:
             # Search the name of all tabs
-            if not TAB_NAME:
+            if not tab_name:
                 list_tab = []
-                metadata = sheet.getByDataFilter(spreadsheetId=SPREADSHEET_ID).execute()
+                metadata = sheet.getByDataFilter(spreadsheetId=spreadsheet_id).execute()
                 for key_sheet in metadata["sheets"]:
                     list_tab.append(key_sheet["properties"]["title"])
             else:
-                list_tab = [TAB_NAME]
+                list_tab = [tab_name]
 
             # Download the spreadsheet tabs
             dict_values = {}
@@ -168,7 +168,7 @@ class ciridrive:
                 result = (
                     sheet.values()
                     .get(
-                        spreadsheetId=SPREADSHEET_ID,
+                        spreadsheetId=spreadsheet_id,
                         range=tab,
                         majorDimension="COLUMNS",
                     )
@@ -177,16 +177,66 @@ class ciridrive:
 
                 dict_values[tab] = result.get("values", {})
 
-            with open(FILE_PATH, "w") as json_file:
+            with open(file_path, "w") as json_file:
                 json.dump(dict_values, json_file)
 
             return dict_values
         except:
             print(
-                "ERROR: Incorrect Tab_name, Spreadsheet_name or SPREADSHEET_ID. Please check and try again."
+                "ERROR: Incorrect Tab_name, Spreadsheet_name or spreadsheet_id. Please check and try again."
             )
 
             return "ERROR"
+
+    def create_folder(self, name_folder=False, id_folder_main=False):
+        """
+            Goal:
+                Create folder on the drive
+            Args:
+                name_folder: Folder name(Required).
+                id_folder_main: If the folder is created inside a shared drive.
+                credentials: Password to access the drive, If not, this function will create
+            Returns:
+                Normal return: created folder id.
+                "ERROR": If an error has occurred.
+        """
+
+        # Checks whether the arguments were passed correctly
+        if False in [name_folder]:
+            print("up_Drive: Argument is missing, please check and try again.\n")
+            print(
+                """Args:
+            name_folder: Folder name(Required).
+            id_folder_main: If the folder is created inside another.
+            credentials: Password to access the drive, If not, this function will create\n"""
+            )
+            return "ERROR"
+
+        # Logging into the drive and receiving credentials
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        # Configures the file name and folder on the drive
+        file_metadata = {
+            "name": name_folder,
+            "mimeType": "application/vnd.google-apps.folder",
+        }
+
+        # if the folder is created inside another
+        if id_folder_main:
+            file_metadata["parents"] = [str(id_folder_main)]
+
+        drive_folder = (
+            service.files()
+            .create(body=file_metadata, fields="id", supportsAllDrives=True,)
+            .execute()
+        )
+
+        return drive_folder.get("id")
 
 
 if __name__ == "__main__":
