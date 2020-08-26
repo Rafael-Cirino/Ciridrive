@@ -238,6 +238,88 @@ class ciridrive:
 
         return drive_folder.get("id")
 
+    def up_drive(self, path_file, id_folder=False, name_file_inDrive=False):
+        """
+            Goal:
+                Access the drive and upload the file
+            Args:
+                path_file: Path of the file to be uploaded(Required).
+                id_folder: Folder id on the drive(Required).
+                name_file_inDrive: If you leave a different name for the file on the drive.
+                credentials: Password to access the drive, If not, this function will create
+            Returns:
+                "sucess": The upload was successful.
+                "ERROR": If an error has occurred.
+        """
+
+        # Checks whether the arguments were passed correctly
+        if False in [True]:
+            print("up_Drive: Argument is missing, please check and try again.\n")
+            print(
+                """Args:
+            path_file: Path of the file to be uploaded(Required).
+            id_folder: Folder id on the drive(Required).
+            name_file_inDrive: If you leave a different name for the file on the drive.\n"""
+            )
+            return "ERROR"
+
+        # Logging into the drive and receiving credentials
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        # Checking if the file to be sent exists
+        if os.path.exists(path_file):
+            # Configures the file name and folder on the drive
+            name_file = (
+                name_file_inDrive if name_file_inDrive else path_file.split("/")[-1]
+            )
+            file_metadata = {"name": str(name_file)}
+
+            if id_folder:
+                file_metadata["parents"] = [str(id_folder)]
+
+            # Configure the file
+            media = MediaFileUpload(path_file, resumable=True)
+
+            # Responsible for uploading
+            request = service.files().create(
+                body=file_metadata, media_body=media, supportsAllDrives=True
+            )
+        else:
+            print("UpDrive: File not found\n")
+
+            return "ERROR"
+
+        # Shows the upload progress on the terminal
+        response, progresso_ant = None, False
+        start = time.time()
+        print(f"--- Uploading the file : {name_file} ---\n")
+        while response is None:
+            try:
+                status, response = request.next_chunk()
+                if status:
+                    progresso = status.progress() * 100
+                    speed_upload = time.time() - start
+                    start = time.time()
+                    taxa = (
+                        (progresso - progresso_ant if progresso_ant else progresso)
+                    ) / speed_upload
+
+                    print(f"Uploaded: {int(progresso)}%.", end=" | ")
+                    print(f"Time remaining: {round((100-progresso)/taxa,2)}s.")
+                    progresso_ant = progresso
+            except:
+                print("Internet is down\n")
+
+                return "ERROR"
+        print(f"--> Upload Complete! : {name_file} <--\n")
+
+        return "sucess"
+
 
 if __name__ == "__main__":
     values = ciridrive().sheet_to_list(

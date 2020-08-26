@@ -7,3 +7,5 @@ ciri = ciridrive()
 
 id_folder = ciri.create_folder(name_folder="testPPP")
 print(id_folder)
+
+ciri.up_Drive("/home/cirulei/Documentos/Ciridrive/ciridrive_python/sheet_json.json")
