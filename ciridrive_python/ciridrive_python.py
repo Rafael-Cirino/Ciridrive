@@ -359,6 +359,33 @@ class ciridrive:
             .execute()
         )
 
+    def search_files(self):
+        try:
+            service = build("drive", "v3", credentials=self.creds)
+        except:
+            print("ERROR: No internet connection")
+
+            return "ERROR"
+
+        page_token = None
+        while True:
+            response = (
+                service.files()
+                .list(
+                    q="mimeType = 'application/vnd.google-apps.folder'",
+                    spaces="drive",
+                    fields="nextPageToken, files(id, name)",
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            for file in response.get("files", []):
+                # Process change
+                print("Found file: %s (%s)" % (file.get("name"), file.get("id")))
+            page_token = response.get("nextPageToken", None)
+            if page_token is None:
+                break
+
 
 if __name__ == "__main__":
     values = ciridrive().sheet_to_list(
