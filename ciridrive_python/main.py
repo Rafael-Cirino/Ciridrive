@@ -12,14 +12,17 @@ ciri = ciridrive()
 
 # print(ciri.copy_file("17p_SDlN6eW8jHmrGiHR3mwRzzZgGwGXFXBV7-HMtWBk"))
 
-# ciri.move_file("1trdQHBX3d-1jI4ds7U67ImfHrryh2kVc", "10XeP4YhtXQ1Q9N0oXq2J5eFbEXccb1AS")
+ciri.move_drive(
+    "1y4Yge66VDobx4eKthJ_XlW_-YMhsuwtpQguu9kG1tls", "1FOQ-e13gAO-OiwaPGIAHntQwlraSFAIR"
+)
 
-
+"""
 ciri.search_files(
     "id",
     "0Byk3LcJwnlR7fkgwSWlfd0tsdk9HcWU5eXJ1SW5QMjJ0S3RXQ2U3TWhGeXpMaXl6LWpIclk",
     status=True,
 )
+"""
 """
 ciri.drive_download("10XeP4YhtXQ1Q9N0oXq2J5eFbEXccb1AS")
 ciri.drive_download("1nu7O_-0RQnlpgJja52DuErCO-rIMH-rIvJomiUyuitc")

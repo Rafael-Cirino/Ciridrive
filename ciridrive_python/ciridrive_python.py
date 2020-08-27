@@ -489,12 +489,12 @@ class ciridrive:
 
         return config_copy_file["id"]
 
-    def move_file(self, file_id: str, folder_id: str):
+    def move_drive(self, id_source: str, id_destiny: str):
         """[Moves the file from one folder to another on the drive]
 
         Arguments:
-            file_id {str} -- [File Id]
-            folder_id {str} -- [Id of the folder that will receive the file]
+            id_source {str} -- [File Id]
+            id_destiny {str} -- [Id of the folder that will receive the file]
 
         Returns:
             [bool] -- [If a False is returned an error has occurred, If the file is successfully downloaded, True will be returned]
@@ -509,15 +509,19 @@ class ciridrive:
             return False
 
         # Retrieve the existing parents to remove
-        file = service.files().get(fileId=file_id, fields="parents").execute()
+        file = (
+            service.files()
+            .get(fileId=id_source, fields="parents", supportsAllDrives=True)
+            .execute()
+        )
         previous_parents = ",".join(file.get("parents"))
 
         # Move the file to the new folder
         file = (
             service.files()
             .update(
-                fileId=file_id,
-                addParents=folder_id,
+                fileId=id_source,
+                addParents=id_destiny,
                 removeParents=previous_parents,
                 fields="id, parents",
                 supportsAllDrives=True,
