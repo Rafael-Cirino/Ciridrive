@@ -10,7 +10,7 @@ ciri = ciridrive()
 
 # ciri.drive_upload("/home/cirulei/Documentos/Ciridrive/ciridrive_python/sheet_json.json")
 
-# print(ciri.copy_file("17p_SDlN6eW8jHmrGiHR3mwRzzZgGwGXFXBV7-HMtWBk"))
+# print(ciri.copy_drive("17p_SDlN6eW8jHmrGiHR3mwRzzZgGwGXFXBV7-HMtWBk"))
 
 ciri.move_drive(
     "1y4Yge66VDobx4eKthJ_XlW_-YMhsuwtpQguu9kG1tls", "1FOQ-e13gAO-OiwaPGIAHntQwlraSFAIR"

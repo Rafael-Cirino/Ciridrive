@@ -453,11 +453,11 @@ class ciridrive:
 
         return True
 
-    def copy_file(self, file_id: str, new_name=False):
+    def copy_drive(self, id: str, new_name=False):
         """[Copy the file on the drive from one folder to another]
 
         Arguments:
-            file_id {str} -- [File id to be copied]
+            id {str} -- [File id to be copied]
 
         Keyword Arguments:
             new_name {str} -- [If you want to rename the file when the new copy is created] (default: {False})
