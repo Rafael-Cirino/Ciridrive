@@ -130,8 +130,22 @@ class ciridrive:
             # Save the credentials for the next run
             with open(PATH + PASS_DRIVE, "wb") as token:
                 pickle.dump(self.creds, token)
+            token.close()
 
-    def sheet_to_list(self, spreadsheet_id, tab_name=False, status=False):
+    def sheet_to_list(self, spreadsheet_id: str, tab_name=False):
+        """[Convert a drive spreadsheet to a list]
+
+        Arguments:
+            spreadsheet_id {[str]} -- [It is found in the share link]
+
+        Keyword Arguments:
+            tab_name {str} -- [Tab name, for a list of a specific tab or a specific range] (default: {False})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [list] -- [Returns the drive spreadsheet]
+        """
+
         # Verify internet connection
         try:
             service = build("sheets", "v4", credentials=self.creds)
@@ -178,8 +192,22 @@ class ciridrive:
             return False
 
     def sheet_to_json(
-        self, spreadsheet_id, tab_name=False, status=False, file_path="sheet_json.json"
+        self, spreadsheet_id: str, tab_name=False, file_path="sheet_json.json"
     ):
+        """[summary]
+
+        Arguments:
+            spreadsheet_id {str} -- [It is found in the share link]
+
+        Keyword Arguments:
+            tab_name {str} -- [Tab name, for a list of a specific tab or a specific range] (default: {False})
+            file_path {str} -- [File name and path] (default: {"sheet_json.json"})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [dict] -- [Returns the spreadsheet as a dictionary]
+        """
+
         # Verify internet connection
         try:
             service = build("sheets", "v4", credentials=self.creds)
@@ -228,29 +256,19 @@ class ciridrive:
 
             return False
 
-    def create_folder(self, name_folder=False, id_folder_main=False):
-        """
-            Goal:
-                Create folder on the drive
-            Args:
-                name_folder: Folder name(Required).
-                id_folder_main: If the folder is created inside a shared drive.
-                credentials: Password to access the drive, If not, this function will create
-            Returns:
-                Normal return: created folder id.
-                False: If an error has occurred.
-        """
+    def create_folder(self, name_folder: str, id_folder_main=False):
+        """[Create folder on the drive]
 
-        # Checks whether the arguments were passed correctly
-        if False in [name_folder]:
-            print("up_Drive: Argument is missing, please check and try again.\n")
-            print(
-                """Args:
-            name_folder: Folder name(Required).
-            id_folder_main: If the folder is created inside another.
-            credentials: Password to access the drive, If not, this function will create\n"""
-            )
-            return False
+        Arguments:
+            name_folder {str} -- [Folder name]
+
+        Keyword Arguments:
+            id_folder_main {str} -- [If you want to create the folder inside another folder, enter the folder id above. Otherwise, it will be created in the root folder of the drive] (default: {False})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [str] -- [Returns the id of the created folder]
+        """
 
         # Logging into the drive and receiving credentials
         try:
@@ -278,18 +296,22 @@ class ciridrive:
 
         return drive_folder.get("id")
 
-    def drive_upload(self, path_file, id_folder=False, name_file_inDrive=False):
-        """
-            Goal:
-                Access the drive and upload the file
-            Args:
-                path_file: Path of the file to be uploaded(Required).
-                id_folder: Folder id on the drive(Required).
-                name_file_inDrive: If you leave a different name for the file on the drive.
-                credentials: Password to access the drive, If not, this function will create
-            Returns:
-                "sucess": The upload was successful.
-                False: If an error has occurred.
+    def drive_upload(
+        self, path_file: str, id_folder=False, name_file_inDrive=False, status=True
+    ):
+        """[Upload a file to the drive]
+
+        Arguments:
+            path_file {str} -- [Path of the file you want to upload]
+
+        Keyword Arguments:
+            id_folder {str} -- [Id of the folder where the file will be saved. If false, it will be uploaded to the root folder of the drive] (default: {False})
+            name_file_inDrive {str} -- [If you want to put the file on the drive with a different name than the current one] (default: {False})
+            status {bool} -- [If you want to see the download status] (default: {True})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [str] -- [Returns the id of the file uploaded]
         """
 
         # Logging into the drive and receiving credentials
@@ -331,9 +353,9 @@ class ciridrive:
         print(f"\n--- Uploading the file : {name_file} ---\n")
         while response is None:
             try:
-                status, response = request.next_chunk()
-                if status:
-                    progresso = status.progress() * 100
+                status_upload, response = request.next_chunk()
+                if status_upload:
+                    progresso = status_upload.progress() * 100
                     speed_upload = time.time() - start
                     start = time.time()
                     taxa = (
@@ -351,7 +373,20 @@ class ciridrive:
 
         return id_file
 
-    def drive_download(self, file_id, save_path=False, status=True):
+    def drive_download(self, file_id: str, save_path=False, status=True):
+        """[Download file from drive]
+
+        Arguments:
+            file_id {str} -- [Id of the file to be downloaded]
+
+        Keyword Arguments:
+            save_path {str} -- [Folder where you want to save the file. If false, a folder called download will be created] (default: {False})
+            status {bool} -- [If you want to see the download status] (default: {True})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred, If the file is successfully downloaded, True will be returned]
+        """
+
         # Authenticates to the drive
         try:
             service = build("drive", "v3", credentials=self.creds)
@@ -418,7 +453,21 @@ class ciridrive:
 
         return True
 
-    def copy_file(self, file_id, new_name=False):
+    def copy_file(self, file_id: str, new_name=False):
+        """[Copy the file on the drive from one folder to another]
+
+        Arguments:
+            file_id {str} -- [File id to be copied]
+
+        Keyword Arguments:
+            new_name {str} -- [If you want to rename the file when the new copy is created] (default: {False})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [str] -- [Returns the id of the file copied]
+        """
+
+        # Logging into the drive and receiving credentials
         try:
             service = build("drive", "v3", credentials=self.creds)
         except:
@@ -426,10 +475,12 @@ class ciridrive:
 
             return False
 
+        # Receives the file's metadata on the drive
         file_metadata = {"description": "This file is a copy"}
         if new_name:
             file_metadata["name"] = str(new_name)
 
+        # Copy the file
         config_copy_file = (
             service.files()
             .copy(fileId=file_id, body=file_metadata, supportsAllDrives=True)
@@ -438,7 +489,18 @@ class ciridrive:
 
         return config_copy_file["id"]
 
-    def move_file(self, file_id, folder_id):
+    def move_file(self, file_id: str, folder_id: str):
+        """[Moves the file from one folder to another on the drive]
+
+        Arguments:
+            file_id {str} -- [File Id]
+            folder_id {str} -- [Id of the folder that will receive the file]
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred, If the file is successfully downloaded, True will be returned]
+        """
+
+        # Logging into the drive and receiving credentials
         try:
             service = build("drive", "v3", credentials=self.creds)
         except:
@@ -463,8 +525,24 @@ class ciridrive:
             .execute()
         )
 
-    def search_files(self):
-        # AINDA NÃO TERMINEI
+        return True
+
+    def search_files(self, search_type: str, search: str, status=True):
+        """[Search by file and folders]
+
+        Arguments:
+            search_type {str} -- [It can have equal value: "name" or "mimeType" or "id" or "fulltext"]
+            search {str} -- [Based on the type of search to be done, type id or name or type]
+
+        Keyword Arguments:
+            status {bool} -- [If you want the files found to be shown] (default: {True})
+
+        Returns:
+            [bool] -- [If a False is returned an error has occurred]
+            [dict] -- [Dictionary containing data from files found]
+        """
+
+        # Logging into the drive and receiving credentials
         try:
             service = build("drive", "v3", credentials=self.creds)
         except:
@@ -472,24 +550,57 @@ class ciridrive:
 
             return False
 
+        # Check what type of search will be done
+        if search_type == "name":
+            search_for = f"name = '{search}'"
+        elif search_type == "mimeType" or search_type == "mimetype":
+            search_for = f"mimeType = '{search}'"
+        elif search_type == "id" or search_type == "Id":
+            search_for = f"'{search}' in parents"
+        elif search_type == "fulltext":
+            search_for = f"fullText contains '{search}'"
+        else:
+            print("Please enter a valid type of strip")
+
+            return False
+
         page_token = None
+        dict_search = {}
+
+        # Performs the search
         while True:
+            # Searching for files
             response = (
                 service.files()
                 .list(
-                    q="mimeType = 'application/vnd.google-apps.folder'",
+                    q=search_for,
                     spaces="drive",
-                    fields="nextPageToken, files(id, name)",
+                    fields="nextPageToken, files(id, name, parents, mimeType, modifiedTime)",
                     pageToken=page_token,
+                    supportsAllDrives=True,
                 )
                 .execute()
             )
+            # generates file metadata
             for file in response.get("files", []):
                 # Process change
-                print("Found file: %s (%s)" % (file.get("name"), file.get("id")))
+                if status:
+                    print(
+                        f"name: {file.get('name')} | id: {file.get('id')} | type_file: {file.get('mimeType')}"
+                    )
+
+                dict_search[f"{file.get('name')}/{file.get('id')}"] = {
+                    "name": file.get("name"),
+                    "id": file.get("id"),
+                    "parents": file.get("parents"),
+                    "type_file": file.get("mimeType"),
+                    "last_modified": file.get("modifiedTime"),
+                }
             page_token = response.get("nextPageToken", None)
             if page_token is None:
                 break
+
+        return dict_search
 
 
 if __name__ == "__main__":
