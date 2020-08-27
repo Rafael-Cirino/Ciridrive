@@ -527,7 +527,7 @@ class ciridrive:
 
         return True
 
-    def search_files(self, search_type: str, search: str, status=True):
+    def search_drive(self, search_type: str, search: str, status=True):
         """[Search by file and folders]
 
         Arguments:
