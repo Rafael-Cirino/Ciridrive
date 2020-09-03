@@ -4,3 +4,13 @@ Original.json
 settings.json
 
 sheet_json.json
+
+ciridrive_python/download
+ciridrive_python/test
+
+test_canlib.py
+
+credentials
+
+dist
+build

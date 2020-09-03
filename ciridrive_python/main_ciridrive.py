@@ -3,13 +3,14 @@ import pickle
 import time
 import json
 import pathlib
+import shutil
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-import io  # Added
+import io
 from googleapiclient.http import MediaIoBaseDownload
 from apiclient import http
 
@@ -62,12 +63,14 @@ DICT_MIME_TYPE = {
 
 
 class ciridrive:
-    def __init__(self):
-        """
-            Goal:
-                Responsible for "logging" into the drive.
-            Returns:
-                Returns the credential to service log into the drive.
+    def __init__(self, reset=False, client_id=False, client_secret=False):
+        """[Responsible for "logging" into the drive.]
+
+        Keyword Arguments:
+            reset {bool} -- [If you want to delete the current drive access file] (default: {False})
+            client_id {str} -- [The new client_id] (default: {""})
+            client_secret {str} -- [The new client_secret] (default: {""})
+
         """
         # If modifying these scopes, delete the file token.pickle.
         SCOPES = [
@@ -82,14 +85,27 @@ class ciridrive:
         # Path to credential
         self.path_script = str(pathlib.Path(__file__).parent.resolve())
         PATH = self.path_script + "/pass_drive/"
+        path_raw = self.path_script + "/pass_drive"
 
-        self.creds = None
+        # Checking the current settings file
+        client_id_atual, client_secret_atual = "xxx", "xxx"
+        if os.path.exists(PATH + FILE_SETTINGS):
+            with open(PATH + FILE_SETTINGS, "r") as file:
+                settings = json.load(file)
+
+            client_id_atual = settings["installed"]["client_id"]
+            client_secret_atual = settings["installed"]["client_secret"]
+
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists(PATH + PASS_DRIVE):
-            with open(PATH + PASS_DRIVE, "rb") as token:
-                self.creds = pickle.load(token)
+        self.creds = None
+        if os.path.exists(path_raw):
+            if client_id != client_id_atual and client_secret != client_secret_atual:
+                shutil.rmtree(path_raw)
+            else:
+                with open(PATH + PASS_DRIVE, "rb") as token:
+                    self.creds = pickle.load(token)
 
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
@@ -97,10 +113,12 @@ class ciridrive:
                 self.creds.refresh(Request())
             else:
                 # Receiving client_id and client_secret
-                client_id = input("Digite a client_id/Enter the client_id:")
-                client_secret = input(
-                    "Digite a client_secret//Enter the client_secret:"
-                )
+                if not client_id:
+                    client_id = input("Digite a client_id/Enter the client_id:")
+                if not client_secret:
+                    client_secret = input(
+                        "Digite a client_secret//Enter the client_secret:"
+                    )
 
                 # Checking if folders exist
                 if not (os.path.exists(PATH)):
