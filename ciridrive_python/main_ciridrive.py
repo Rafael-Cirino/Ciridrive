@@ -30,9 +30,18 @@ FILE_SETTINGS = "settings_drive.json"
 PASS_DRIVE = "pass_drive"
 DICT_MIME_TYPE = {
     "google-apps": {
-        "application/vnd.google-apps.document": "docx",
-        "application/vnd.google-apps.spreadsheet": "xlsx",
-        "application/vnd.google-apps.presentation": "pptx",
+        "application/vnd.google-apps.document": {
+            "type": "docx",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+        "application/vnd.google-apps.spreadsheet": {
+            "type": "xlsx",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+        "application/vnd.google-apps.presentation": {
+            "type": "pptx",
+            "mime": "application/pdf",
+        },
     },
     "general": {
         "application/pdf": "pdf",
@@ -103,7 +112,7 @@ class ciridrive:
         if os.path.exists(path_raw):
             if client_id != client_id_atual and client_secret != client_secret_atual:
                 shutil.rmtree(path_raw)
-            else:
+            elif os.path.exists(PATH + PASS_DRIVE):
                 with open(PATH + PASS_DRIVE, "rb") as token:
                     self.creds = pickle.load(token)
 
@@ -414,7 +423,7 @@ class ciridrive:
             return False
 
         # Creates the folder where the downloaded file will be saved
-        default_path_download = self.path_script + "/download"
+        default_path_download = "download"
         if not (os.path.exists(default_path_download)) and not (save_path):
             os.mkdir(default_path_download)
         elif save_path:
@@ -426,15 +435,15 @@ class ciridrive:
 
         # Sets the file type
         if metadata_arq["mimeType"] in DICT_MIME_TYPE["google-apps"]:
-            type_file = DICT_MIME_TYPE["google-apps"][metadata_arq["mimeType"]]
-            request = service.files().export_media(
-                fileId=file_id, mimeType="application/pdf"
-            )
+            type_file = DICT_MIME_TYPE["google-apps"][metadata_arq["mimeType"]]["type"]
+            mime_file = DICT_MIME_TYPE["google-apps"][metadata_arq["mimeType"]]["mime"]
+
+            request = service.files().export_media(fileId=file_id, mimeType=mime_file)
             file_save = io.FileIO(
                 f"{default_path_download}/{name_file}.{type_file}", mode="wb"
             )
         elif metadata_arq["mimeType"] in DICT_MIME_TYPE["general"]:
-            request = service.files().get_media(fileId=file_id)
+            request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
             file_save = io.FileIO(f"{default_path_download}/{name_file}", mode="wb")
         else:
             print("The file type cannot be downloaded")
@@ -463,9 +472,10 @@ class ciridrive:
                     print(f"Time remaining: {round((100-progresso)/taxa,2)}s.")
                     progresso_ant = progresso
             except:
-                print("No internet connection\n")
+                if metadata_arq["mimeType"] != "application/vnd.google-apps.document":
+                    print("No internet connection\n")
 
-                return False
+                    return False
         if status:
             print(f"--> Downloading Complete! : {name_file} <--\n")
 
